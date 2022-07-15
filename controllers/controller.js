@@ -1,4 +1,4 @@
-const { product, purchase } = require("./../models");
+const { product} = require("./../models");
 const { Op } = require("sequelize");
 const moment = require("moment");
 const db = require("./../config/dbQuery");
@@ -70,7 +70,7 @@ const getProductDetail = async (req, res, next) => {
 const addProducts = async (req, res, next) => {
   const body = req.body;
   try {
-    const result = await product.create(body);
+    const result = await product.bulkCreate(body);
     res.status(201).json(result);
   } catch (error) {
     next(error);
