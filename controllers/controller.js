@@ -1,5 +1,6 @@
 const { product, purchase } = require("./../models");
 const { Op } = require("sequelize");
+const moment = require('moment')
 
 const addProducts = async (req, res, next) => {
   const body = req.body;
@@ -22,7 +23,7 @@ const addPurchase = async (req, res, next) => {
         id: productId,
       }
     });
-    //check if product exists?
+    //check if product exists in the database
     if (!productExists) {
       let error = {
         status: 404,
@@ -55,7 +56,11 @@ const addPurchase = async (req, res, next) => {
 //get products detail
 const getProductDetail = async (req, res, next) => {
   const { date1, date2, startPostion, maxResult } = req.body;
-
+  if(date1 || date2){
+    if(date1 && !moment(date1).isValid()) return res.status(400).json({message : "invalid date format"});
+    if(date2 && !moment(date2).isValid()) return res.status(400).json({message : "invalid date format"});
+  }
+  
   try {
     let result;
     if (date1 && !date2) {
