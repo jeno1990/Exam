@@ -1,28 +1,16 @@
 const { product, purchase } = require("./../models");
 const { Op } = require("sequelize");
-const moment = require('moment')
+const moment = require("moment");
+const db = require("./../config/dbQuery");
 
-const addProducts = async (req, res, next) => {
-  const body = req.body;
-  try {
-    const result = await product.create(body);
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
 
+//to add purchased products to the data base
 const addPurchase = async (req, res, next) => {
   const productId = req.params["productId"];
   const { quantity, pricePerPiece } = req.body;
 
   try {
-    console.log(productId);
-    const productExists = await product.findOne({
-      where : {
-        id: productId,
-      }
-    });
+    const productExists = await db.findProductByid(productId)
     //check if product exists in the database
     if (!productExists) {
       let error = {
@@ -31,7 +19,6 @@ const addPurchase = async (req, res, next) => {
       };
       return next(error);
     }
-    console.log("productExists : ", productExists)
     if (!quantity || !pricePerPiece) {
       let error = {
         status: 400,
@@ -39,11 +26,7 @@ const addPurchase = async (req, res, next) => {
       };
       return next(error);
     }
-    const result = await purchase.create({
-      purchased_quantity: quantity,
-      purchased_price_per_piece: pricePerPiece,
-      productId: productId,
-    });
+    const result = await db.addPurchsed(quantity , pricePerPiece , productId)
     res.status(200).json({
       status: true,
       Message: "pruchased product created successfully!",
@@ -56,53 +39,20 @@ const addPurchase = async (req, res, next) => {
 //get products detail
 const getProductDetail = async (req, res, next) => {
   const { date1, date2, startPostion, maxResult } = req.body;
-  if(date1 || date2){
-    if(date1 && !moment(date1).isValid()) return res.status(400).json({message : "invalid date format"});
-    if(date2 && !moment(date2).isValid()) return res.status(400).json({message : "invalid date format"});
+  if (date1 || date2) {
+    if (date1 && !moment(date1).isValid())
+      return res.status(400).json({ message: "invalid date format" });
+    if (date2 && !moment(date2).isValid())
+      return res.status(400).json({ message: "invalid date format" });
   }
-  
+
   try {
-    let result;
-    if (date1 && !date2) {
-      result = await product.findAll({
-        include: purchase,
-        offset: startPostion,
-        where: {
-          createdAt: {
-            [Op.gte]: date1,
-          },
-        },
-        limit: maxResult,
-      });
-    } else if (!date1 && date2) {
-      result = await product.findAll({
-        include: purchase,
-        offset: startPostion,
-        where: {
-          createdAt: {
-            [Op.lte]: date2,
-          },
-        },
-        limit: maxResult,
-      });
-    } else if (!date1 && !date2) {
-        result = await product.findAll({
-            include: purchase,
-            offset: startPostion,
-            limit: maxResult,
-          });
-    } else {
-      result = await product.findAll({
-        include: purchase,
-        offset: startPostion,
-        where: {
-          createdAt: {
-            [Op.between]: [date1, date2],
-          },
-        },
-        limit: maxResult,
-      });
-    }
+    const result = await db.getProductDetail(
+      date1,
+      date2,
+      startPostion,
+      maxResult
+    );
     const len = result.length;
     res.status(200).json({
       product: result,
@@ -112,7 +62,19 @@ const getProductDetail = async (req, res, next) => {
         message: "product details successfully returned!",
       },
     });
-  } catch (error) {}
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addProducts = async (req, res, next) => {
+  const body = req.body;
+  try {
+    const result = await product.create(body);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
